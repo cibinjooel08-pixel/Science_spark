@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&display=swap" rel="stylesheet"><title>PROJECT EXHIBITION — CERTIFICATE GENERATOR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ═══════════════════════════════
+   ANIMATED SCIENCE BACKGROUND
+═══════════════════════════════ */
+body {
+  font-family: 'Segoe UI', 'Times New Roman', serif;
+  min-height: 100vh;
+  background: #0a0a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 40px;
+  color: white;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Gradient overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(102,51,255,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,180,255,0.25) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(0,30,80,0.9) 0%, transparent 100%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Floating science particles canvas */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* All content above background */
+body > * { position: relative; z-index: 1; }
+
+/* ═══════════════════════════════
+   HEADER
+═══════════════════════════════ */
+.site-header {
+  text-align: center;
+  margin: 10px 0 24px;
+}
+
+.site-header .badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #7b2ff7, #00b4ff);
+  border-radius: 30px;
+  padding: 6px 18px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.site-header h1 {
+  font-size: clamp(24px, 5vw, 42px);
+  font-weight: 800;
+  background: linear-gradient(135deg, #fff 30%, #a78bfa 70%, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.site-header p {
+  font-size: 13px;
+  opacity: 0.6;
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════
+   GLASS CARD FORM
+═══════════════════════════════ */
+.card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 20px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 400px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  margin-bottom: 20px;
+}
+
+.card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+  color: white;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field input::placeholder { color: rgba(255,255,255,0.35); }
+.field input:focus,
+.field select:focus {
+  border-color: #7b2ff7;
+  background: rgba(123,47,247,0.15);
+}
+
+/* Custom select arrow */
+.select-wrap {
+  position: relative;
+}
+.select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+}
+.field select option {
+  background: #1a1a2e;
+  color: white;
+}
+
+/* Others text input (hidden by default) */
+#other-dept-wrap {
+  margin-top: 10px;
+  display: none;
+}
+
+/* Error message */
+.err-msg {
+  display: none;
+  background: rgba(255,60,60,0.18);
+  border: 1px solid rgba(255,80,80,0.4);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #ff9090;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.err-msg.show { display: block; }
+
+/* Generate button */
+.btn-generate {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7b2ff7, #00b4ff);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: opacity 0.2s, transform 0.1s;
+  box-shadow: 0 4px 20px rgba(123,47,247,0.4);
+}
+.btn-generate:hover { opacity: 0.9; }
+.btn-generate:active { transform: scale(0.98); }
+
+/* ═══════════════════════════════
+   CERTIFICATE PREVIEW
+═══════════════════════════════ */
+.preview-section {
+  width: 100%;
+  max-width: 842px;
+  display: none; /* shown after generate */
+}
+.preview-section.show { display: block; }
+
+.preview-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.preview-outer {
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Always 842×595 internally — JS scales to screen */
+#cert-capture {
+  width: 842px;
+  height: 595px;
+  position: relative;
+  background: white;
+  transform-origin: top left;
+}
+
+#cert-capture .cert-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 842px;
+  height: 595px;
+  display: block;
+}
+
+/* Overlays — all px, no vw/% — PDF = preview exactly */
+.ov {
+  position: absolute;
+  white-space: nowrap;
+  font-family: 'Times New Roman', serif;
+  font-weight: bold;
+  color: #000;
+  line-height: 1;
+}
+
+/* Download button */
+.btn-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+  margin: 18px auto 0;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  display: none;
+}
+.btn-download.show {
+  display: flex;
+}
+.btn-download:hover { background: linear-gradient(135deg, #7b2ff7, #00b4ff); }
+.btn-download:active { transform: scale(0.98); }
+
+/* ═══════════════════════════════
+   LOADING OVERLAY
+═══════════════════════════════ */
+#loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(4px);
+}
+#loading.show { display: flex; }
+.spinner {
+  width: 52px; height: 52px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: #7b2ff7;
+  border-right-color: #00b4ff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading p { font-size: 14px; opacity: 0.7; letter-spacing: 1px; }
+
+/* ═══════════════════════════════
+   ERROR POPUP (missing fields)
+═══════════════════════════════ */
+#error-popup {
+  display: none;
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(20,0,0,0.92);
+  border: 1.5px solid #ff4444;
+  border-radius: 14px;
+  padding: 14px 24px;
+  font-size: 14px;
+  color: #ff9090;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(255,0,0,0.3);
+  backdrop-filter: blur(8px);
+  min-width: 260px;
+  max-width: 90vw;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+#error-popup.show { display: block; }
+#error-popup .ep-icon { font-size: 22px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Animated background canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Header -->
+<div class="site-header">
+  <div class="badge">🔬 Science Club · Discovery and Innovation</div>
+  <h1>SCIENCE SPARK<br>CERTIFICATE GENERATOR</h1>
+  <p>Rajiv Gandhi College of Engineering &amp; Technology</p>
+</div>
+
+<!-- Form Card -->
+<div class="card">
+  <h2>🎓 Enter Details</h2>
+
+  <div class="field">
+    <label>Full Name</label>
+    <input type="text" id="inp-name" placeholder="Enter your name (IN CAPS)" />
+  </div>
+
+  <div class="field">
+    <label>Department</label>
+    <div class="select-wrap">
+      <select id="inp-dept" onchange="handleDeptChange()">
+        <option value="">— Select Department —</option>
+        <option value="CSE">CSE</option>
+        <option value="IT">IT</option>
+        <option value="ECE">ECE</option>
+        <option value="BME">BME</option>
+        <option value="EEE">EEE</option>
+        <option value="AI&ML">AI&amp;ML</option>
+        <option value="AI&DS">AI&amp;DS</option>
+        <option value="MBA">MBA</option>
+        <option value="OTHERS">OTHERS</option>
+      </select>
+    </div>
+    <!-- shown only when OTHERS selected -->
+    <div id="other-dept-wrap">
+      <input type="text" id="inp-dept-other" placeholder="Type your department..." />
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Year</label>
+    <div class="select-wrap">
+      <select id="inp-year">
+        <option value="">— Select Year —</option>
+        <option value="Iˢᵗ">Iˢᵗ</option>
+        <option value="IIⁿᵈ">IIⁿᵈ</option>
+        <option value="IIIʳᵈ">IIIʳᵈ</option>
+        <option value="IVᵗʰ">IVᵗʰ</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn-generate" onclick="generate()">✦ Generate Certificate</button>
+</div>
+
+<!-- Certificate Preview -->
+<div class="preview-section" id="preview-section">
+  <div class="preview-label">Preview</div>
+  <div class="preview-outer">
+    <div id="cert-capture">
+      <img class="cert-bg" src="Science_spark.svg" crossorigin="anonymous" alt=""/>
+
+      <!-- NAME -->
+      <div class="ov" id="ov-name" style="
+        top: 270px;
+        left: 421px;
+        transform: translateX(-50%);
+        font-size: 30px;
+        letter-spacing: 1px;
+        text-align: center;
+        font-family:'Cinzel', serif;
+      "></div>
+
+      <!-- YEAR -->
+      <div class="ov" id="ov-year" style="
+        top: 318px;
+        left: 354px;
+        transform: translateX(-50%);
+        font-size: 20px;
+        text-align: center;
+        font-family:'Cinzel', serif;
+      "></div>
+
+      <!-- DEPT -->
+      <div class="ov" id="ov-dept" style="
+        top: 318px;
+        left: 526px;
+        transform: translateX(-50%);
+        font-size: 20px;
+        text-align: center;
+        font-family:'Cinzel', serif;
+      "></div>
+    </div>
+  </div>
+</div>
+
+<!-- Download Button -->
+<button class="btn-download" id="btn-download" onclick="downloadPDF()">
+  ⬇ Download Certificate
+</button>
+
+<!-- Loading -->
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Generating your certificate...</p>
+</div>
+
+<!-- Error Popup -->
+<div id="error-popup">
+  <div class="ep-icon">⚠️</div>
+  <div id="error-msg">Please fill all fields.</div>
+</div>
+
+<script>
+const W = 842, H = 595;
+
+/* ── Scale cert-capture to fit screen ── */
+function scaleCapture() {
+  const outer = document.querySelector('.preview-outer');
+  if (!outer) return;
+  const scale = Math.min(outer.clientWidth / W, 1);
+  const el = document.getElementById('cert-capture');
+  el.style.transform = `scale(${scale})`;
+  outer.style.height = (H * scale) + 'px';
+}
+window.addEventListener('resize', scaleCapture);
+
+/* ── Show/hide OTHERS dept input ── */
+function handleDeptChange() {
+  const val = document.getElementById('inp-dept').value;
+  const wrap = document.getElementById('other-dept-wrap');
+  wrap.style.display = val === 'OTHERS' ? 'block' : 'none';
+  if (val !== 'OTHERS') document.getElementById('inp-dept-other').value = '';
+}
+
+/* ── Show error popup ── */
+function showError(msg) {
+  const popup = document.getElementById('error-popup');
+  document.getElementById('error-msg').textContent = msg;
+  popup.classList.add('show');
+  setTimeout(() => popup.classList.remove('show'), 3000);
+}
+
+/* ── Generate ── */
+function generate() {
+  const name     = document.getElementById('inp-name').value.trim();
+  const deptSel  = document.getElementById('inp-dept').value;
+  const deptOther= document.getElementById('inp-dept-other').value.trim();
+  const year     = document.getElementById('inp-year').value;
+
+  // Validation
+  if (!name)              return showError('⚠️  Please enter the student name.');
+  if (!deptSel)           return showError('⚠️  Please select a department.');
+  if (deptSel === 'OTHERS' && !deptOther)
+                          return showError('⚠️  Please type your department name.');
+  if (!year)              return showError('⚠️  Please select the year.');
+
+  const dept = deptSel === 'OTHERS' ? deptOther : deptSel;
+
+  // Update overlays
+  document.getElementById('ov-name').textContent = name;
+  document.getElementById('ov-dept').textContent = dept;
+  document.getElementById('ov-year').textContent = year;
+
+  // Show preview + download button
+  const section = document.getElementById('preview-section');
+  section.classList.add('show');
+  document.getElementById('btn-download').classList.add('show');
+
+  scaleCapture();
+
+  // Smooth scroll to preview
+  setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+/* ── Download PDF ── */
+async function downloadPDF() {
+  const loading = document.getElementById('loading');
+  loading.classList.add('show');
+
+  const el    = document.getElementById('cert-capture');
+  const outer = document.querySelector('.preview-outer');
+
+  try {
+    // 1. Remove CSS scale → capture full 842×595
+    el.style.transform = 'scale(1)';
+    outer.style.height = H + 'px';
+
+    // 2. Wait for repaint
+    await new Promise(res => setTimeout(res, 200));
+
+    // 3. Capture
+    const canvas = await html2canvas(el, {
+      scale:           3,
+      useCORS:         true,
+      allowTaint:      true,
+      backgroundColor: '#ffffff',
+      width:           W,
+      height:          H,
+      x:               0,
+      y:               0,
+      scrollX:         0,
+      scrollY:         -window.scrollY,
+      logging:         false
+    });
+
+    // 4. Restore scale
+    scaleCapture();
+
+    // 5. PDF
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+    pdf.save('Science Spark.pdf');
+
+  } catch (err) {
+    scaleCapture();
+    showError('Download failed: ' + err.message);
+    console.error(err);
+  } finally {
+    loading.classList.remove('show');
+  }
+}
+
+/* ══════════════════════════════════════════
+   ANIMATED SCIENCE BACKGROUND
+   Draws: atoms, DNA dots, stars, molecules
+══════════════════════════════════════════ */
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, particles, orbitals;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  // Particle types: star, atom-electron, dna-dot, molecule-node
+  function createParticles() {
+    particles = [];
+    const count = Math.min(Math.floor(W * H / 8000), 120);
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.8 + 0.4,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        color: Math.random() < 0.5
+          ? `hsla(${220 + Math.random()*60},100%,70%,`
+          : `hsla(${270 + Math.random()*60},100%,75%,`,
+        alpha: Math.random() * 0.6 + 0.2
+      });
+    }
+
+    // Atom orbitals
+    orbitals = [];
+    const atomCount = Math.floor(W / 300);
+    for (let i = 0; i < atomCount; i++) {
+      orbitals.push({
+        cx: Math.random() * W,
+        cy: Math.random() * H,
+        rx: 40 + Math.random() * 30,
+        ry: 15 + Math.random() * 15,
+        angle: Math.random() * Math.PI,
+        speed: (Math.random() * 0.008 + 0.004) * (Math.random() < 0.5 ? 1 : -1),
+        rot: Math.random() * Math.PI,
+        electronAngle: Math.random() * Math.PI * 2,
+        color: `hsla(${200 + Math.random()*100},100%,70%,0.5)`
+      });
+    }
+  }
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.008;
+
+    // Draw connections between nearby particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(120,100,255,${0.15 * (1 - dist/100)})`;
+          ctx.lineWidth = 0.5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw + move particles
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H;
+      if (p.y > H) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + p.alpha + ')';
+      ctx.fill();
+    }
+
+    // Draw atom orbitals
+    for (const o of orbitals) {
+      o.electronAngle += o.speed;
+
+      ctx.save();
+      ctx.translate(o.cx, o.cy);
+      ctx.rotate(o.rot);
+
+      // Orbit ring
+      ctx.beginPath();
+      ctx.ellipse(0, 0, o.rx, o.ry, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = o.color;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Nucleus
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = o.color;
+      ctx.fill();
+
+      // Electron
+      const ex = Math.cos(o.electronAngle) * o.rx;
+      const ey = Math.sin(o.electronAngle) * o.ry;
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(180,230,255,0.8)';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Floating formula text snippets
+    const formulas = ['H₂O', 'E=mc²', 'λ', 'Δ', 'π', '∑', '∞', 'Fe', 'NaCl'];
+    ctx.font = '11px monospace';
+    for (let i = 0; i < formulas.length; i++) {
+      const fx = ((i * 173 + t * 12) % (W + 80)) - 40;
+      const fy = 60 + (i * 97) % (H - 100);
+      ctx.fillStyle = `rgba(140,160,255,${0.12 + 0.05 * Math.sin(t + i)})`;
+      ctx.fillText(formulas[i], fx, fy);
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  createParticles();
+  draw();
+  window.addEventListener('resize', () => { resize(); createParticles(); });
+})();
+</script>
+</body>
+</html>
